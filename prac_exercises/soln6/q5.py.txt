@@ -1,0 +1,45 @@
+"""
+Write a function that, given part of a title, shows the full title and the total size of the cast and crew
+"""
+
+import sys
+
+import cs3311
+
+movieDict = {}
+
+if len(sys.argv) != 2:
+    print("Usage: ./q5 partialMovieTitle")
+    sys.exit(1)
+partialMovieTitle = sys.argv[1]
+
+conn = cs3311.connect()
+
+# Check the user
+cur1 = conn.cursor()
+cur1.execute(
+    "select t.main_title, count(distinct a.name_id) \
+    from   Titles t join ( \
+        (select distinct title_id, name_id from Actor_roles) \
+        union \
+        (select distinct title_id, name_id from Crew_roles) \
+        union \
+        (select distinct title_id, name_id from Principals) \
+    ) a on a.title_id = t.id \
+    WHERE t.main_title LIKE '%{}%' \
+    group  by t.id, t.main_title;".format(partialMovieTitle)
+)
+tples = cur1.fetchall()
+outputStrings = []
+
+for title, count in tples:
+    outputStrings.append("{} has {} cast and crew".format(title, count))
+
+if len(outputStrings) == 0:
+    print("No matching titles")
+else:
+    for line in outputStrings:
+        print(line)
+
+
+conn.close()

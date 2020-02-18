@@ -1,0 +1,66 @@
+"""
+Given a movie name, produce a list of principals
+
+Movie title (start_year)
+\t Name 1, role(s) (i.e. actor, director,...)
+\t Name 2, role(s) (i.e. actor, director,...)
+etc. etc.
+
+Using the ordering field from the Principals table
+"""
+
+import sys
+
+import cs3311
+
+movieDict = {}
+
+if len(sys.argv) != 2:
+    print("Usage: ./q4 movieTitle")
+    sys.exit(1)
+name = sys.argv[1]
+
+conn = cs3311.connect()
+
+# Check the user
+cur1 = conn.cursor()
+cur1.execute(
+    "SELECT id, main_title, start_year \
+    FROM titles as n \
+    WHERE main_title = '{}'".format(name)
+)
+tple = cur1.fetchone()
+if tple is None:
+    print("Please enter a valid title name")
+    sys.exit(1)
+
+titleId, mainTitle, startYear = tple
+print("{} (start_year: {})".format(name, startYear))
+cur1.close()
+
+# Principals
+cur2 = conn.cursor()
+cur2.execute(
+    "SELECT n.name, p.job_cat \
+    FROM principals AS p \
+    JOIN names AS n ON p.name_id = n.id \
+    WHERE p.title_id = '{}' \
+    ORDER BY p.ordering".format(titleId)
+)
+tples = cur2.fetchall()
+nameDict = {}
+for titleName, jobCat in tples:
+    if titleName not in nameDict:
+        nameDict[titleName] = []
+    nameDict[titleName].append(jobCat)
+
+
+# Printing
+for key, value in nameDict.items():
+    print("    {}: {}".format(key, value))
+
+cur2.close()
+
+
+
+conn.close()

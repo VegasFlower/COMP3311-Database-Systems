@@ -1,0 +1,41 @@
+"""
+Write a function that, given part of a title, shows the full title and the total size of the cast and crew
+"""
+
+import sys
+import cs3311
+
+print("== Updating a crew's job ==")
+name = input("Enter the crew member's name: ").strip()
+title = input("Enter the title they crewed for: ").strip()
+job = input("Enter their new crew job: ").strip()
+
+conn = cs3311.connect()
+
+print(name)
+
+cur1 = conn.cursor()
+cur1.execute("select id FROM names WHERE name = '{}'".format(name))
+nameId = cur1.fetchone()
+if nameId is None:
+    print("Name is not a valid name")
+    sys.exit(1)
+cur1.close()
+
+cur2 = conn.cursor()
+cur2.execute("select id FROM titles WHERE main_title = '{}'".format(title))
+titleId = cur2.fetchone()
+if titleId is None:
+    print("Movie title is not a valid title")
+    sys.exit(1)
+cur2.close()
+
+cur3 = conn.cursor()
+cur3.execute(
+    "UPDATE crew_roles \
+    SET role = '{}' \
+    WHERE name_id = {} AND title_id = {}".format(job, nameId[0], titleId[0]))
+conn.commit()
+cur3.close()
+
+conn.close()

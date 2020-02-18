@@ -1,0 +1,27 @@
+"""
+Produce a list of names, and for each name, what their mostly highly rated movie title they've acted in is. If they haven't acted in a film, exclude them from the list.
+"""
+
+import cs3311
+conn = cs3311.connect()
+
+cur = conn.cursor()
+query = """
+select DISTINCT n.name, t.main_title, t.rating
+from names n join actor_roles a on a.name_id = n.id
+join titles t on a.title_id = t.id
+where  t.rating = (select max(t.rating)
+    from   actor_roles a
+    join titles t on a.title_id = t.id
+    where  a.name_id = n.id
+)
+order by name
+"""
+
+cur.execute(query)
+for tup in cur.fetchall() :
+    name,title,rating = tup
+    print("{}: {} with rating {}".format(name, title, rating))
+
+cur.close()
+conn.close()

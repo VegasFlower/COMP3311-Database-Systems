@@ -1,0 +1,40 @@
+"""
+Produce a list of names, and for each name, what their mostly highly rated movie title they've acted in is. If they haven't acted in a film, exclude them from the list.
+
+Note: This is an example of a sub optimal solution due to the fact that we're unnecesarrily
+      running a query without a loop, which could be solved by a sub-query. Database calls
+      require I/O which adds a performance overhead to applications and, while necessary, should
+      be reduced as much as possible
+"""
+
+import cs3311
+conn = cs3311.connect()
+
+cur1 = conn.cursor()
+cur1.execute(
+    "SELECT id, name FROM names"
+)
+namesTable = cur1.fetchall()
+for namesRow in namesTable:
+    nameId, name = namesRow
+    cur2 = conn.cursor()
+    cur2.execute(
+        "SELECT t.main_title, t.rating \
+        FROM titles AS t \
+        JOIN actor_roles AS ar ON t.id = ar.title_id \
+        WHERE ar.name_id = {} \
+        AND rating = (\
+            SELECT MAX(rating) \
+            FROM titles AS t \
+            JOIN actor_roles AS ar ON t.id = ar.title_id \
+            WHERE ar.name_id = {} \
+        )".format(nameId, nameId))
+
+    titlesTable = cur2.fetchall()
+    for titleRow in titlesTable:
+        title, rating = titleRow
+        print("{}: {} with rating {}".format(name, title, rating))
+    cur2.close()
+
+cur1.close()
+conn.close()

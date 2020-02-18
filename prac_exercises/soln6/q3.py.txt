@@ -1,0 +1,94 @@
+"""
+Given a name, produce a filmography:
+
+Name (born: birth_year, [died: death_year])
+\t Movie1 title (year): [role(s) (i.e. actor, director,...)]
+\t Movie2 title (year): [role(s) (i.e. actor, director,...)]
+etc. etc.
+
+ordered by year, then title
+"""
+
+import sys
+
+import cs3311
+
+nameDict = {}
+def addToNameDict(d, name, year):
+    if name not in d:
+        d[name] = {
+            'year': year,
+            'roles' : [],
+        }
+
+if len(sys.argv) != 2:
+    print("Usage: ./q3 validName")
+    sys.exit(1)
+name = sys.argv[1]
+
+conn = cs3311.connect()
+
+# Check the user
+cur1 = conn.cursor()
+cur1.execute(
+    "SELECT id, birth_year, death_year \
+    FROM names as n \
+    WHERE name = '{}'".format(name)
+)
+tple = cur1.fetchone()
+if tple is None:
+    print("Please enter a valid name")
+    sys.exit(1)
+
+nameId, birthYear, deathYear = tple
+print("{} (born: {}, died: {})".format(name, birthYear, deathYear))
+cur1.close()
+
+# Actors
+cur2 = conn.cursor()
+cur2.execute(
+    "SELECT t.main_title, t.start_year, played \
+    FROM titles as t JOIN actor_roles AS ar ON ar.title_id = t.id \
+    WHERE ar.name_id = '{}'".format(nameId)
+)
+tples = cur2.fetchall()
+nameDict = {}
+for titleName, titleYear, rolePlayed in tples:
+    addToNameDict(nameDict, titleName, titleYear)
+    nameDict[titleName]['roles'].append('Acted as ' + rolePlayed)
+
+# Crew roles
+cur2 = conn.cursor()
+cur2.execute(
+    "SELECT t.main_title, t.start_year, role \
+    FROM titles as t JOIN crew_roles AS ar ON ar.title_id = t.id \
+    WHERE ar.name_id = '{}'".format(nameId)
+)
+tples = cur2.fetchall()
+for titleName, titleYear, role in tples:
+    addToNameDict(nameDict, titleName, titleYear)
+    nameDict[titleName]['roles'].append('Has a roll as ' + role)
+
+
+# Principals
+cur2 = conn.cursor()
+cur2.execute(
+    "SELECT t.main_title, t.start_year, job_cat \
+    FROM titles as t JOIN principals AS ar ON ar.title_id = t.id \
+    WHERE ar.name_id = '{}'".format(nameId)
+)
+tples = cur2.fetchall()
+for titleName, titleYear, jobCat in tples:
+    addToNameDict(nameDict, titleName, titleYear)
+    nameDict[titleName]['roles'].append('Principaled as as ' + jobCat)
+
+
+# Printing
+for key, value in nameDict.items():
+    print("    {} ({}): {}".format(key, value['year'], value['roles']))
+
+cur2.close()
+
+
+
+conn.close()

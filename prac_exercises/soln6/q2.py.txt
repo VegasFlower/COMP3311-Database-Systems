@@ -1,0 +1,29 @@
+"""
+Give 1 integer argument (argv), produce a histogram of all birth years of people with first names less than 2 characters and their frequency. Exclude any birth years where no names fit that criteria
+"""
+
+import re
+
+import cs3311
+conn = cs3311.connect()
+
+cur1 = conn.cursor()
+cur1.execute(
+    "SELECT name, birth_year FROM names"
+)
+namesTable = cur1.fetchall()
+histo = {}
+for namesRow in namesTable:
+    name, birthYear = namesRow
+    if birthYear not in histo:
+        histo[birthYear] = []
+    name = re.sub(r"^.*\. ", "", name)
+    if len(name.split(' ')[0]) <= 2:
+        histo[birthYear].append(name)
+
+for key, value in histo.items():
+    if len(value) > 0:
+    	print("{}: {}".format(key, value))
+
+cur1.close()
+conn.close()
